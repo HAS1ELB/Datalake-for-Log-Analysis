@@ -1,78 +1,99 @@
-version: '3'
+
 
 services:
-  # Service pour Hadoop/HDFS
   namenode:
-    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    build: ./hadoop
     container_name: namenode
+    hostname: namenode
     ports:
-      - "9870:9870"
-      - "9000:9000"
-    volumes:
-      - hadoop_namenode:/hadoop/dfs/name
+      - "9870:9870"  # HDFS namenode web UI
+      - "8020:8020"  # HDFS namenode
     environment:
       - CLUSTER_NAME=hadoop-cluster
     env_file:
       - ./hadoop.env
-
-  datanode:
-    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
-    container_name: datanode
     volumes:
-      - hadoop_datanode:/hadoop/dfs/data
-    environment:
-      SERVICE_PRECONDITION: "namenode:9870"
-    env_file:
-      - ./hadoop.env
+      - hadoop_namenode:/hadoop/dfs/name
+    command: ["hdfs", "namenode"]
+    networks:
+      - hadoop_network
+
+  datanode1:
+    build: ./hadoop
+    container_name: datanode1
+    hostname: datanode1
     depends_on:
       - namenode
+    env_file:
+      - ./hadoop.env
+    volumes:
+      - hadoop_datanode1:/hadoop/dfs/data
+    command: ["hdfs", "datanode"]
+    networks:
+      - hadoop_network
 
-  # Service pour Hive
+  mysql:
+    build: ./mysql
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: transactional_db
+      MYSQL_USER: sqoop_user
+      MYSQL_PASSWORD: sqoop_password
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - mysql_data:/var/lib/mysql
+    networks:
+      - hadoop_network
+
   hive-server:
-    image: bde2020/hive:2.3.2-postgresql-metastore
+    build:
+      context: .
+      dockerfile: hive/Dockerfile
     container_name: hive-server
-    ports:
-      - "10000:10000"
-    environment:
-      HIVE_CORE_CONF_javax_jdo_option_ConnectionURL: "jdbc:postgresql://hive-metastore/metastore"
-      SERVICE_PRECONDITION: "hive-metastore:9083"
-    env_file:
-      - ./hadoop.env
-    depends_on:
-      - hive-metastore
-
-  hive-metastore:
-    image: bde2020/hive:2.3.2-postgresql-metastore
-    container_name: hive-metastore
-    ports:
-      - "9083:9083"
-    environment:
-      SERVICE_PRECONDITION: "namenode:9870 datanode:9864 hive-metastore-postgresql:5432"
-    env_file:
-      - ./hadoop.env
-    command: /opt/hive/bin/hive --service metastore
-    depends_on:
-      - hive-metastore-postgresql
-
-  hive-metastore-postgresql:
-    image: bde2020/hive-metastore-postgresql:2.3.0
-    container_name: hive-metastore-postgresql
-    volumes:
-      - hive-metastore-postgresql:/var/lib/postgresql/data
-
-  # Notre application Python pour la collecte et traitement des logs
-  logs-app:
-    build: .
-    container_name: logs-app
-    volumes:
-      - ./:/app
-      - ./sample_logs:/app/logs
     depends_on:
       - namenode
+      - datanode1
+    ports:
+      - "10000:10000"  # HiveServer2
+      - "10002:10002"  # Hive web UI
+    env_file:
+      - ./hadoop.env
+    environment:
+      - HIVE_SITE_CONF_javax_jdo_option_ConnectionURL=jdbc:derby:;databaseName=/opt/hive/metastore_db;create=true
+      - HIVE_SITE_CONF_hive_metastore_warehouse_dir=hdfs://namenode:8020/user/hive/warehouse
+    volumes:
+      - hive_data:/opt/hive/data
+      - hive_metastore_db:/opt/hive/metastore_db # Persistent metastore
+      - ./scripts:/scripts
+    networks:
+      - hadoop_network
+
+  sqoop:
+    build:
+      context: .
+      dockerfile: sqoop/Dockerfile
+    container_name: sqoop
+    depends_on:
+      - namenode
+      - mysql
       - hive-server
-    command: tail -f /dev/null  # Garde le conteneur en cours d'exécution
+    volumes:
+      - ./scripts:/scripts
+    env_file:
+      - ./hadoop.env
+    networks:
+      - hadoop_network
+
+networks:
+  hadoop_network:
+    driver: bridge
 
 volumes:
   hadoop_namenode:
-  hadoop_datanode:
-  hive-metastore-postgresql:
+  hadoop_datanode1:
+  mysql_data:
+  hive_data:
+  hive_metastore_db:
