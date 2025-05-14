@@ -6,23 +6,23 @@
         <value>local</value>
     </property>
     <property>
-        <name>mapreduce.map.memory.mb</name>
-        <value>2048</value>
+        <name>mapreduce.task.io.sort.mb</name>
+        <value>256</value>
     </property>
     <property>
-        <name>mapreduce.map.java.opts</name>
-        <value>-Xmx1536m</value>
+    <name>mapreduce.map.memory.mb</name>
+    <value>1024</value>
     </property>
     <property>
         <name>mapreduce.reduce.memory.mb</name>
-        <value>2048</value>
+        <value>1024</value>
+    </property>
+    <property>
+        <name>mapreduce.map.java.opts</name>
+        <value>-Xmx768m</value>
     </property>
     <property>
         <name>mapreduce.reduce.java.opts</name>
-        <value>-Xmx1536m</value>
-    </property>
-    <property>
-        <name>mapreduce.task.io.sort.mb</name>
-        <value>256</value>
+        <value>-Xmx768m</value>
     </property>
 </configuration>

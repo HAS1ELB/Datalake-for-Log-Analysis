@@ -45,11 +45,10 @@ sqoop import \
 
 # Import de la table ventes
 sqoop import \
-  --connect jdbc:mysql://mysql:3306/transactional_db \
+  --connect "jdbc:mysql://mysql:3306/transactional_db?useUnicode=true&characterEncoding=UTF-8" \
   --username sqoop_user \
   --password sqoop_password \
-  --table ventes \
-  --columns "vente_id,client_id,date_vente,montant_total" \
+  --query 'SELECT vente_id, client_id, DATE_FORMAT(date_vente, "%Y-%m-%d %H:%i:%s") AS date_vente, montant_total FROM ventes WHERE $CONDITIONS' \
   --map-column-java vente_id=Integer,client_id=Integer,date_vente=String,montant_total=java.math.BigDecimal \
   --target-dir hdfs://namenode:8020/user/sqoop/ventes \
   --delete-target-dir \

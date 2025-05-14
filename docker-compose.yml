@@ -97,3 +97,5 @@ volumes:
   mysql_data:
   hive_data:
   hive_metastore_db:
+  projet-migration-mysql-hadoop_hadoop_namenode:
+    external: true

@@ -6,7 +6,8 @@ ENV SQOOP_VERSION=1.4.7
 ENV HADOOP_HOME=/opt/hadoop
 ENV SQOOP_HOME=/opt/sqoop
 ENV PATH=$PATH:$HADOOP_HOME/bin:$HADOOP_HOME/sbin:$SQOOP_HOME/bin
-ENV CLASSPATH=$CLASSPATH:${SQOOP_HOME}/gen-classes
+ENV HADOOP_CLASSPATH=/opt/sqoop/gen-classes/*
+ENV CLASSPATH=$CLASSPATH:${SQOOP_HOME}/lib
 
 # Installation des dépendances
 RUN apt-get update && apt-get install -y --no-install-recommends \
